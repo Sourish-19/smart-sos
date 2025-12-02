@@ -1,0 +1,8 @@
+{
+  "name": "SmartSOS",
+  "description": "A comprehensive AI-powered health monitoring dashboard for elderly care, featuring real-time vital simulation, anomaly detection, and emergency response protocols.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}

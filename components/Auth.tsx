@@ -1,0 +1,209 @@
+
+import React, { useState } from 'react';
+import { Activity, Loader2, AlertCircle } from 'lucide-react';
+import { authService, User } from '../services/authService';
+
+interface AuthProps {
+  onLogin: (user: User) => void;
+}
+
+const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    age: '',
+    phoneNumber: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      let user: User;
+      
+      if (isLogin) {
+        // Login Logic
+        if (!formData.email || !formData.password) {
+          throw new Error("Please fill in all fields");
+        }
+        user = await authService.login(formData.email, formData.password);
+      } else {
+        // Register Logic
+        if (!formData.email || !formData.password || !formData.name || !formData.phoneNumber) {
+          throw new Error("Please fill in all required fields");
+        }
+        user = await authService.register(
+          formData.email, 
+          formData.password, 
+          formData.name, 
+          parseInt(formData.age) || 60,
+          formData.phoneNumber
+        );
+      }
+      
+      onLogin(user);
+    } catch (err: any) {
+      setError(err.message || "Authentication failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Pre-fill for demo convenience if empty
+  React.useEffect(() => {
+    if (isLogin && !formData.email) {
+      setFormData(prev => ({...prev, email: 'margaret@example.com', password: ''}));
+    }
+  }, [isLogin]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 font-sans transition-colors duration-200">
+      {/* Logo & Header */}
+      <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center justify-center space-x-3 mb-6">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-md">
+            <Activity className="text-blue-600 dark:text-blue-400" size={40} />
+          </div>
+        </div>
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">SmartSOS</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">AI-Powered Health Monitoring</p>
+      </div>
+
+      {/* Main Card */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-500 border border-slate-100 dark:border-slate-800">
+        
+        {/* Tab Switcher */}
+        <div className="flex p-2 bg-slate-50 dark:bg-slate-800 m-2 rounded-2xl">
+          <button
+            onClick={() => { setIsLogin(true); setError(null); }}
+            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+              isLogin 
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' 
+                : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+            }`}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => { setIsLogin(false); setError(null); }}
+            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+              !isLogin 
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' 
+                : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+            }`}
+          >
+            Register
+          </button>
+        </div>
+
+        <div className="p-8 pt-6">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            {isLogin ? 'Welcome Back' : 'Create Account'}
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
+            {isLogin 
+              ? 'Enter your credentials to access your dashboard' 
+              : 'Join SmartSOS for 24/7 health monitoring'
+            }
+          </p>
+
+          {error && (
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl flex items-center text-sm font-medium animate-in slide-in-from-top-2">
+              <AlertCircle size={18} className="mr-2 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {!isLogin && (
+              <div className="space-y-5 animate-in slide-in-from-left-4 fade-in duration-300">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Full Name</label>
+                  <input
+                    type="text"
+                    required={!isLogin}
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                    placeholder="Margaret Thompson"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Phone Number (For WhatsApp Alerts)</label>
+                  <input
+                    type="tel"
+                    required={!isLogin}
+                    value={formData.phoneNumber}
+                    onChange={e => setFormData({...formData, phoneNumber: e.target.value})}
+                    className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                    placeholder="+1 555 123 4567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Age (Optional)</label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={e => setFormData({...formData, age: e.target.value})}
+                    className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                    placeholder="72"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Email</label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={e => setFormData({...formData, email: e.target.value})}
+                className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                placeholder="your@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Password</label>
+              <input
+                type="password"
+                required
+                value={formData.password}
+                onChange={e => setFormData({...formData, password: e.target.value})}
+                className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-blue-100 dark:shadow-none mt-4 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin mr-2" size={24} />
+                  Processing...
+                </>
+              ) : (
+                isLogin ? 'Login' : 'Create Account'
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+      
+      <p className="mt-8 text-slate-400 dark:text-slate-500 text-xs font-medium">© 2024 SmartSOS Health Systems</p>
+    </div>
+  );
+};
+
+export default Auth;
