@@ -2,7 +2,6 @@
 
 Smart SOS is an intelligent emergency alert and response application designed to provide rapid assistance in critical situations. Leveraging modern technologies, the application enables users to quickly send SOS signals, share their real-time location, and notify emergency contacts or authorities efficiently.
 
-![SmartSOS Dashboard](./assets/smartsos-dashboard.png)
 
 > **Predict. Prevent. Protect.**
 >
