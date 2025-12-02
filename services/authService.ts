@@ -18,17 +18,21 @@ export const authService = {
    * Initialize default demo user if not exists
    */
   init() {
-    const usersStr = localStorage.getItem(USERS_KEY);
-    if (!usersStr) {
-      const demoUser = {
-        id: 'user_demo_1',
-        email: 'margaret@example.com',
-        password: 'password', // Storing plain text for MVP demo only
-        name: 'Margaret Thompson',
-        age: 72,
-        phoneNumber: '+15550109988'
-      };
-      localStorage.setItem(USERS_KEY, JSON.stringify([demoUser]));
+    try {
+      const usersStr = localStorage.getItem(USERS_KEY);
+      if (!usersStr) {
+        const demoUser = {
+          id: 'user_demo_1',
+          email: 'margaret@example.com',
+          password: 'password', // Storing plain text for MVP demo only
+          name: 'Margaret Thompson',
+          age: 72,
+          phoneNumber: '+15550109988'
+        };
+        localStorage.setItem(USERS_KEY, JSON.stringify([demoUser]));
+      }
+    } catch (e) {
+      console.error("Auth Init Error:", e);
     }
   },
 
@@ -97,7 +101,14 @@ export const authService = {
   },
 
   getCurrentUser(): User | null {
-    const sessionStr = localStorage.getItem(SESSION_KEY);
-    return sessionStr ? JSON.parse(sessionStr) : null;
+    try {
+      const sessionStr = localStorage.getItem(SESSION_KEY);
+      return sessionStr ? JSON.parse(sessionStr) : null;
+    } catch (e) {
+      console.error("Session Parse Error:", e);
+      // Clear invalid session
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
   }
 };

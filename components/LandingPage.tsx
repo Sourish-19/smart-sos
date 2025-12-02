@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Activity, Shield, Bell, Users, Play, ArrowRight, TrendingUp, Cpu, Phone, Heart, CheckCircle } from 'lucide-react';
 
@@ -230,7 +229,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
           </div>
           
           <div className="border-t border-slate-800 pt-8 text-center text-sm">
-            © 2024 SmartSOS. All rights reserved.
+            © 2025 SmartSOS. All rights reserved.
           </div>
         </div>
       </footer>

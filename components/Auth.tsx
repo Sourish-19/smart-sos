@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Activity, Loader2, AlertCircle } from 'lucide-react';
 import { authService, User } from '../services/authService';
@@ -201,7 +200,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         </div>
       </div>
       
-      <p className="mt-8 text-slate-400 dark:text-slate-500 text-xs font-medium">© 2024 SmartSOS Health Systems</p>
+      <p className="mt-8 text-slate-400 dark:text-slate-500 text-xs font-medium">© 2025 SmartSOS Health Systems</p>
     </div>
   );
 };
