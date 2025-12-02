@@ -58,7 +58,7 @@ const simulateChatResponse = (text: string, patient: PatientState): string => {
     return "You're welcome. Stay safe!";
   }
   
-  return "I am currently running in Demo Mode (Simulated AI). I can see your vitals are updated. How can I help you regarding your health?";
+  return "I am active and monitoring your vitals. I can provide updates on your Heart Rate or Blood Pressure, or assist with Emergency protocols. How can I help?";
 };
 
 // --- API SERVICES ---
