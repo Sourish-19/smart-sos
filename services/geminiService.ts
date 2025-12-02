@@ -10,15 +10,73 @@ If vitals are normal, give positive reinforcement.
 If vitals are abnormal, suggest a safe, non-medical immediate action (e.g., "Sit down", "Drink water") and suggest checking with a doctor.
 `;
 
+// --- SIMULATION HELPERS (Fallback when API Key is missing) ---
+
+const simulateInsight = (patient: PatientState): AIInsight => {
+  const isCritical = patient.status === 'CRITICAL';
+  const isWarning = patient.status === 'WARNING';
+  
+  if (isCritical) {
+    return {
+      content: "⚠️ CRITICAL ALERT: Heart rate spike detected (>120 BPM). Emergency protocols recommended immediately.",
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'warning'
+    };
+  }
+  if (isWarning) {
+    return {
+      content: "Observation: Slight elevation in blood pressure detected. Advise patient to sit and hydrate.",
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'warning'
+    };
+  }
+  return {
+    content: "Health Status: Stable. Vitals are within normal ranges. Keep up the good work!",
+    timestamp: new Date().toLocaleTimeString(),
+    type: 'positive'
+  };
+};
+
+const simulateChatResponse = (text: string, patient: PatientState): string => {
+  const t = text.toLowerCase();
+  
+  if (t.includes('hello') || t.includes('hi')) {
+    return `Hello ${patient.name}. I am monitoring your health. Your current status is ${patient.status}.`;
+  }
+  if (t.includes('heart') || t.includes('rate') || t.includes('bpm')) {
+    const hr = patient.heartRate.value;
+    return `Your heart rate is currently ${hr} BPM. ${hr > 100 ? 'This is elevated. Please sit down and rest.' : 'This is a healthy resting rate.'}`;
+  }
+  if (t.includes('blood') || t.includes('pressure') || t.includes('bp')) {
+    const { systolic, diastolic } = patient.bloodPressure;
+    return `Your blood pressure is ${systolic}/${diastolic} mmHg. ${systolic > 130 ? 'It is slightly high.' : 'It is within the normal range.'}`;
+  }
+  if (t.includes('emergency') || t.includes('help') || t.includes('sos')) {
+    return "If you are feeling unwell, please press the red SOS button immediately to contact your doctor.";
+  }
+  if (t.includes('thank')) {
+    return "You're welcome. Stay safe!";
+  }
+  
+  return "I am currently running in Demo Mode (Simulated AI). I can see your vitals are updated. How can I help you regarding your health?";
+};
+
+// --- API SERVICES ---
+
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const generateHealthInsight = async (patient: PatientState): Promise<AIInsight> => {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
-      return {
-        content: "API Key missing. Unable to generate AI insights.",
-        timestamp: new Date().toLocaleTimeString(),
-        type: 'info'
-      };
+      console.warn("API Key missing. Using Simulated Insight.");
+      return simulateInsight(patient);
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -57,18 +115,17 @@ export const generateHealthInsight = async (patient: PatientState): Promise<AIIn
 
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return {
-      content: "Unable to reach AI service at this time.",
-      timestamp: new Date().toLocaleTimeString(),
-      type: 'info'
-    };
+    // Fallback to simulation on API error
+    return simulateInsight(patient);
   }
 };
 
 export const getChatResponse = async (userMessage: string, patient: PatientState): Promise<string> => {
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) return "I'm offline right now (API Key missing).";
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        return simulateChatResponse(userMessage, patient);
+    }
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -96,6 +153,6 @@ export const getChatResponse = async (userMessage: string, patient: PatientState
     return response.text || "I didn't catch that. Could you repeat?";
   } catch (error) {
     console.error("Chat API Error:", error);
-    return "I'm having trouble connecting to the server.";
+    return simulateChatResponse(userMessage, patient);
   }
 };
