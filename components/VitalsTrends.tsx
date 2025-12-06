@@ -1,6 +1,7 @@
-
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Download } from 'lucide-react';
+import { jsPDF } from "jspdf";
 import { PatientState } from '../types';
 
 interface VitalsTrendsProps {
@@ -12,17 +13,91 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
   const gridColor = isDarkMode ? "#334155" : "#e2e8f0";
   const textColor = isDarkMode ? "#94a3b8" : "#64748b";
 
+  const handleExport = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const timestamp = new Date().toLocaleString();
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(37, 99, 235); // Blue
+    doc.text("SmartSOS Health Report", 20, 20);
+
+    // Patient Info
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0); // Black
+    doc.text(`Patient Name: ${patient.name}`, 20, 35);
+    doc.text(`Patient ID: ${patient.id}`, 20, 42);
+    doc.text(`Generated: ${timestamp}`, 20, 49);
+    doc.line(20, 55, pageWidth - 20, 55);
+
+    // Heart Rate Section
+    let yPos = 70;
+    doc.setFontSize(16);
+    doc.setTextColor(244, 63, 94); // Rose
+    doc.text("Heart Rate History (Last 24h)", 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    // Simple table simulation
+    doc.text("Time", 20, yPos);
+    doc.text("BPM", 60, yPos);
+    yPos += 5;
+    
+    patient.heartRate.history.slice(-10).reverse().forEach((record) => {
+       doc.text(record.time, 20, yPos);
+       doc.text(`${Math.round(record.value)}`, 60, yPos);
+       yPos += 7;
+    });
+
+    // Blood Pressure Section
+    yPos += 15;
+    doc.setFontSize(16);
+    doc.setTextColor(59, 130, 246); // Blue
+    doc.text("Blood Pressure History (Last 24h)", 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text("Time", 20, yPos);
+    doc.text("Measurement (mmHg)", 60, yPos);
+    yPos += 5;
+
+    patient.bloodPressure.history.slice(-10).reverse().forEach((record) => {
+       doc.text(record.time, 20, yPos);
+       doc.text(`${Math.round(record.systolic)} / ${Math.round(record.diastolic)}`, 60, yPos);
+       yPos += 7;
+    });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Generated automatically by SmartSOS AI Monitoring System.", 20, 280);
+
+    doc.save(`SmartSOS_Report_${patient.name.replace(' ', '_')}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Health Trends</h2>
            <p className="text-slate-500 dark:text-slate-400">Analysis of vital signs over the last 24 hours.</p>
         </div>
-        <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-           <button className="px-3 py-1 bg-white dark:bg-slate-600 shadow-sm rounded-md text-sm font-medium text-slate-800 dark:text-white">24H</button>
-           <button className="px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">1W</button>
-           <button className="px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">1M</button>
+        <div className="flex space-x-2">
+           <button 
+             onClick={handleExport}
+             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+           >
+             <Download size={16} />
+             <span>Export Report</span>
+           </button>
+           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+             <button className="px-3 py-1 bg-white dark:bg-slate-600 shadow-sm rounded-md text-sm font-medium text-slate-800 dark:text-white">24H</button>
+             <button className="px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">1W</button>
+             <button className="px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">1M</button>
+           </div>
         </div>
       </div>
 

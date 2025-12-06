@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Menu, Mic, AlertTriangle, Phone, Moon, Sun } from 'lucide-react';
 import { generateHealthInsight } from './services/geminiService';
 import { authService, User } from './services/authService';
+import { sendTelegramMessage } from './services/telegramService';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import VitalsTrends from './components/VitalsTrends';
@@ -21,6 +22,8 @@ const INITIAL_PATIENT: PatientState = {
   name: "Guest User",
   age: 65,
   phoneNumber: "",
+  telegramBotToken: "",
+  telegramChatId: "",
   status: AlertLevel.STABLE,
   location: { lat: 34.0522, lng: -118.2437, address: "142 Oak Street, Springfield" },
   heartRate: { 
@@ -32,7 +35,7 @@ const INITIAL_PATIENT: PatientState = {
     history: Array.from({length: 20}, (_, i) => ({ time: `${i}:00`, systolic: 115 + Math.random() * 10, diastolic: 75 + Math.random() * 5 }))
   },
   oxygenLevel: { value: 98, unit: '%', label: 'SpO2', trend: 'stable', lastUpdated: 'Now', history: [] },
-  glucose: { value: 94, unit: 'mg/dL', label: 'Glucose', trend: 'up', lastUpdated: 'Now', history: [] },
+  temperature: { value: 98.6, unit: '°F', label: 'Temperature', trend: 'stable', lastUpdated: 'Now', history: [] },
   medications: [
     { id: '1', name: 'Lisinopril', dosage: '10mg', time: '08:00', taken: true, type: 'pill', reminderSent: false },
     { id: '2', name: 'Metformin', dosage: '500mg', time: '12:00', taken: false, type: 'pill', reminderSent: false },
@@ -58,6 +61,12 @@ function App() {
   const [isTestMode, setIsTestMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const patientRef = React.useRef(patient);
+
+  // Keep ref synced with state
+  useEffect(() => {
+    patientRef.current = patient;
+  }, [patient]);
 
   // --- Theme Logic ---
   useEffect(() => {
@@ -85,7 +94,9 @@ function App() {
       ...prev,
       name: user.name,
       age: user.age,
-      phoneNumber: user.phoneNumber
+      phoneNumber: user.phoneNumber,
+      telegramBotToken: user.telegramBotToken || '',
+      telegramChatId: user.telegramChatId || ''
     }));
     setIsAuthenticated(true);
     setShowLanding(false);
@@ -116,6 +127,15 @@ function App() {
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // --- Telegram Helper ---
+  const notifyCaregiver = async (message: string) => {
+     // Use ref to get latest tokens even inside closures/timers
+     const currentPatient = patientRef.current;
+     if (currentPatient.telegramBotToken && currentPatient.telegramChatId) {
+        await sendTelegramMessage(currentPatient.telegramBotToken, currentPatient.telegramChatId, message);
+     }
   };
 
   // --- Geolocation ---
@@ -177,8 +197,13 @@ function App() {
     if (!isAuthenticated) return;
 
     // Check compliance every 30 seconds for MVP demo purposes
-    const complianceInterval = setInterval(() => {
+    const complianceInterval = setInterval(async () => {
       setPatient(prev => {
+        // Use ref to access latest props if needed, but here we are inside setPatient updater
+        // so 'prev' is accurate for state, but we need 'patientRef' for side effects that rely on latest generic data if any.
+        // Actually, 'prev' has the tokens too if they were saved to state. 
+        // But to be safe for side effects:
+        
         const now = new Date();
         const currentHours = now.getHours();
         const currentMinutes = now.getMinutes();
@@ -201,21 +226,24 @@ function App() {
            if (currentTotalMinutes > medTotalMinutes) {
               complianceUpdateNeeded = true;
               
-              const userPhone = prev.phoneNumber || 'Unavailable';
-              const primaryContact = prev.contacts.find(c => c.isPrimary) || prev.contacts[0];
-              
               const logEntry: EmergencyLogType = {
                 id: Date.now().toString() + Math.random(),
                 timestamp: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                type: 'Medication Bot Alert',
+                type: 'Medication Alert',
                 resolved: false,
-                notes: `WhatsApp Bot: Message sent to Patient (${userPhone}). Reminder also sent to ${primaryContact?.name || 'Caregiver'}. Missed: ${med.name}.`
+                notes: `Alert: Medication Missed (${med.name}). Notification sent to caregiver.`
               };
               newLogs.push(logEntry);
 
-              speak(`Reminder: You missed your ${med.name}. A WhatsApp reminder has been sent to your phone.`);
+              // Side Effects - triggered here but using data from 'prev' which is current
+              const msg = `⚠️ *Medication Reminder*\n\nPatient ${prev.name} missed their dose of *${med.name}* at ${med.time}. Please check on them.`;
               
-              // Trigger Visual WhatsApp Notification
+              // We call the external helper, passing tokens directly from 'prev' to be safe
+              if (prev.telegramBotToken && prev.telegramChatId) {
+                  sendTelegramMessage(prev.telegramBotToken, prev.telegramChatId, msg);
+              }
+              
+              speak(`Reminder: You missed your ${med.name}. A notification has been sent to your caregiver.`);
               addNotification('whatsapp', 'Medication Reminder', `You missed your ${med.name} dose at ${med.time}. Please take it now.`);
 
               return { ...med, reminderSent: true };
@@ -254,6 +282,9 @@ function App() {
             ? 160 + Math.random() * 20 
             : 118 + (Math.random() * 6 - 3);
 
+        // Simulate Temperature fluctuations
+        let newTemp = 98.6 + (Math.random() * 0.8 - 0.4); // 98.2 to 99.0
+
         const newHrHistory = [...prev.heartRate.history.slice(1), { time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}), value: newHr }];
         const newBpHistory = [...prev.bloodPressure.history.slice(1), { time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}), systolic: newSys, diastolic: prev.bloodPressure.diastolic }];
 
@@ -261,6 +292,7 @@ function App() {
           ...prev,
           heartRate: { ...prev.heartRate, value: Math.floor(newHr), history: newHrHistory },
           bloodPressure: { ...prev.bloodPressure, systolic: Math.floor(newSys), history: newBpHistory },
+          temperature: { ...prev.temperature, value: newTemp }
         };
       });
     }, 2000); 
@@ -268,7 +300,7 @@ function App() {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  const triggerChaos = () => {
+  const handleManualSOS = () => {
     setIsTestMode(false);
     const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     const newLog: EmergencyLogType = {
@@ -290,7 +322,14 @@ function App() {
     speak("Warning. Heart rate anomaly detected. Emergency protocols initiated.");
     addNotification('system', 'CRITICAL ALERT', 'Abnormal heart rate detected. Emergency contacts are being notified.');
     
-    setTimeout(() => fetchInsight({...patient, status: AlertLevel.CRITICAL}), 1000);
+    // Send Telegram immediately
+    notifyCaregiver(`🚨 *SOS EMERGENCY ALERT* 🚨\n\nPatient: ${patientRef.current.name}\nStatus: CRITICAL (Heart Rate Spike)\nLocation: ${patientRef.current.location.address}\n\nPlease respond immediately.`);
+    
+    setTimeout(() => fetchInsight({...patientRef.current, status: AlertLevel.CRITICAL}), 1000);
+  };
+
+  const triggerChaos = () => {
+     handleManualSOS();
   };
 
   const handleSystemTest = () => {
@@ -314,9 +353,17 @@ function App() {
     speak("System test initiated. Alarm speakers functional.");
   };
 
-  const handleWhatsAppTest = () => {
-     addNotification('whatsapp', 'SmartSOS Bot', 'Hello! This is a test message from your SmartSOS Health Assistant. 🏥');
-     speak("Test notification sent.");
+  const handleNotificationTest = async () => {
+     addNotification('whatsapp', 'Telegram Bot', 'Sending test message to your connected device...');
+     const success = await sendTelegramMessage(patient.telegramBotToken || '', patient.telegramChatId || '', "🏥 *SmartSOS Test Message*\n\nYour notification system is working correctly.");
+     
+     if (success) {
+         speak("Test message sent successfully.");
+         addNotification('whatsapp', 'Telegram Bot', 'Success! Check your Telegram app.');
+     } else {
+         speak("Could not send message. Please check your bot token.");
+         addNotification('system', 'Connection Failed', 'Could not send real Telegram message. Please check your Bot Token and Chat ID in settings.');
+     }
   };
 
   const resolveEmergency = () => {
@@ -333,7 +380,8 @@ function App() {
     setShowSOSModal(false);
     speak("Alarm cancelled. Systems returning to normal.");
     if (!isTestMode) {
-      fetchInsight({...patient, status: AlertLevel.STABLE});
+      notifyCaregiver(`✅ *Alert Resolved*\n\nPatient ${patientRef.current.name} has cancelled the SOS alarm and marked themselves as safe.`);
+      fetchInsight({...patientRef.current, status: AlertLevel.STABLE});
     }
     setIsTestMode(false);
   };
@@ -362,8 +410,23 @@ function App() {
   };
 
   // --- Settings Logic ---
-  const handleUpdateProfile = (updates: Partial<PatientState>) => {
+  const handleUpdateProfile = async (updates: Partial<PatientState>) => {
     setPatient(prev => ({ ...prev, ...updates }));
+    
+    // Persist changes to authService (simulated backend)
+    const user = authService.getCurrentUser();
+    if (user) {
+        const userUpdates: Partial<User> = {};
+        if (updates.name) userUpdates.name = updates.name;
+        if (updates.age) userUpdates.age = updates.age;
+        if (updates.phoneNumber) userUpdates.phoneNumber = updates.phoneNumber;
+        if (updates.telegramBotToken !== undefined) userUpdates.telegramBotToken = updates.telegramBotToken;
+        if (updates.telegramChatId !== undefined) userUpdates.telegramChatId = updates.telegramChatId;
+        
+        if (Object.keys(userUpdates).length > 0) {
+            await authService.updateUser(user.id, userUpdates);
+        }
+    }
   };
 
   const handleAddContact = (contact: Omit<EmergencyContact, 'id'>) => {
@@ -388,7 +451,13 @@ function App() {
 
   // 1. Landing Page
   if (showLanding) {
-    return <LandingPage onLaunch={handleLaunchApp} />;
+    return (
+      <LandingPage 
+        onLaunch={handleLaunchApp} 
+        isDarkMode={isDarkMode} 
+        onToggleTheme={() => setIsDarkMode(!isDarkMode)} 
+      />
+    );
   }
 
   // 2. Authentication
@@ -447,7 +516,7 @@ function App() {
             </button>
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden sm:block"></div>
             <button 
-                onClick={() => { setIsTestMode(false); setShowSOSModal(true); }} // Manual SOS
+                onClick={handleManualSOS} 
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold shadow-md flex items-center gap-2 transition-transform hover:scale-105"
             >
                 <AlertTriangle size={18} />
@@ -488,7 +557,7 @@ function App() {
                  onAddContact={handleAddContact}
                  onRemoveContact={handleRemoveContact}
                  onTestAlarm={handleSystemTest}
-                 onTestWhatsApp={handleWhatsAppTest}
+                 onTestWhatsApp={handleNotificationTest}
                />
             )}
           </div>

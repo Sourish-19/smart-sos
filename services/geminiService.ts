@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { PatientState, AIInsight } from "../types";
 
@@ -5,7 +6,7 @@ const SYSTEM_INSTRUCTION = `
 You are an advanced AI medical assistant for an elderly care dashboard called SmartSOS.
 Your audience is the patient (Margaret, 72) and her family caregivers.
 Keep responses concise (under 40 words), empathetic, and clear.
-Analyze the provided vitals (Heart Rate, BP, SpO2, Glucose) and give a specific health insight or recommendation.
+Analyze the provided vitals (Heart Rate, BP, SpO2, Temperature) and give a specific health insight or recommendation.
 If vitals are normal, give positive reinforcement.
 If vitals are abnormal, suggest a safe, non-medical immediate action (e.g., "Sit down", "Drink water") and suggest checking with a doctor.
 `;
@@ -51,6 +52,10 @@ const simulateChatResponse = (text: string, patient: PatientState): string => {
     const { systolic, diastolic } = patient.bloodPressure;
     return `Your blood pressure is ${systolic}/${diastolic} mmHg. ${systolic > 130 ? 'It is slightly high.' : 'It is within the normal range.'}`;
   }
+  if (t.includes('temperature') || t.includes('temp') || t.includes('fever')) {
+    const temp = patient.temperature.value.toFixed(1);
+    return `Your body temperature is ${temp}°F. ${Number(temp) > 99.5 ? 'You might have a slight fever.' : 'This is normal.'}`;
+  }
   if (t.includes('emergency') || t.includes('help') || t.includes('sos')) {
     return "If you are feeling unwell, please press the red SOS button immediately to contact your doctor.";
   }
@@ -58,7 +63,7 @@ const simulateChatResponse = (text: string, patient: PatientState): string => {
     return "You're welcome. Stay safe!";
   }
   
-  return "I am active and monitoring your vitals. I can provide updates on your Heart Rate or Blood Pressure, or assist with Emergency protocols. How can I help?";
+  return "I am currently running in Demo Mode (Simulated AI). I can see your vitals are updated. You can ask me about your Heart Rate, Blood Pressure, or Emergency Protocols.";
 };
 
 // --- API SERVICES ---
@@ -86,7 +91,7 @@ export const generateHealthInsight = async (patient: PatientState): Promise<AIIn
       Heart Rate: ${patient.heartRate.value} bpm
       Blood Pressure: ${patient.bloodPressure.systolic}/${patient.bloodPressure.diastolic} mmHg
       Oxygen: ${patient.oxygenLevel.value}%
-      Glucose: ${patient.glucose.value} mg/dL
+      Temperature: ${patient.temperature.value} °F
       
       Generate a short health insight based on these numbers.
     `;
@@ -129,19 +134,44 @@ export const getChatResponse = async (userMessage: string, patient: PatientState
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // We inject the current patient state as context in the prompt to ensure the AI considers the LATEST data.
+    // 1. Extract Recent Logs (History)
+    const recentLogs = patient.logs
+      .slice(0, 3)
+      .map(log => `- [${log.timestamp}] ${log.type}: ${log.notes}`)
+      .join('\n      ') || "No recent incidents.";
+
+    // 2. Extract Medication Adherence
+    const totalMeds = patient.medications.length;
+    const takenMeds = patient.medications.filter(m => m.taken).length;
+    const pendingMeds = patient.medications.filter(m => !m.taken).map(m => m.name);
+    
+    const adherenceInfo = totalMeds > 0
+      ? `${takenMeds}/${totalMeds} taken today. (Pending: ${pendingMeds.length > 0 ? pendingMeds.join(', ') : 'None'})`
+      : "No active medications scheduled.";
+
+    // 3. Inject Context
     const contextPrompt = `
       [SYSTEM CONTEXT - HIDDEN FROM USER]
       Patient Name: ${patient.name}
+      
       Current Vitals:
       - Heart Rate: ${patient.heartRate.value} bpm
       - BP: ${patient.bloodPressure.systolic}/${patient.bloodPressure.diastolic} mmHg
       - SpO2: ${patient.oxygenLevel.value}%
-      - Glucose: ${patient.glucose.value} mg/dL
+      - Temperature: ${patient.temperature.value} °F
       - Status: ${patient.status}
       - Location: ${patient.location.address}
+
+      Medical History Context:
+      - Recent Alerts/Logs (Last 3):
+      ${recentLogs}
       
-      Instruction: Answer the user's question acting as a helpful medical assistant. Be concise and reassuring.
+      - Medication Adherence:
+      ${adherenceInfo}
+      
+      Instruction: Answer the user's question acting as a helpful medical assistant. Be concise and reassuring. 
+      Use the medical history or medication context if relevant to the user's question (e.g. if they ask about pills or past alerts).
+      
       User Question: "${userMessage}"
     `;
 
@@ -154,5 +184,90 @@ export const getChatResponse = async (userMessage: string, patient: PatientState
   } catch (error) {
     console.error("Chat API Error:", error);
     return simulateChatResponse(userMessage, patient);
+  }
+};
+
+export const analyzeMedicationImage = async (base64Image: string): Promise<{ name: string; dosage: string; time: string; type: string } | null> => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    // Simulation fallback
+    return new Promise(resolve => setTimeout(() => resolve({
+      name: "Simulated Med (No API Key)",
+      dosage: "50mg",
+      time: "09:00",
+      type: "pill"
+    }), 2000));
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: [
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Image
+          }
+        },
+        {
+          text: `Analyze this image of a medication container or label. 
+          Extract the following details:
+          - Medication Name
+          - Dosage (strength)
+          - Recommended daily time (if not visible, default to '08:00')
+          - Type/Form (strictly return one of: 'pill', 'liquid', 'injection')
+          
+          Return STRICT JSON ONLY. 
+          - Do not use Markdown code blocks. 
+          - Do not add any explanation text.
+          - Do not include trailing commas.
+          Format: { "name": "...", "dosage": "...", "time": "...", "type": "..." }`
+        }
+      ]
+    });
+
+    const text = response.text || "";
+    
+    // Robust extraction strategy
+    // 1. Strip Markdown code blocks if they exist
+    let cleanText = text.replace(/```json\n?|```/g, '').trim();
+    
+    // 2. Locate the first '{' and the last '}'
+    const firstBrace = cleanText.indexOf('{');
+    const lastBrace = cleanText.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+        throw new Error("No JSON object found in response");
+    }
+
+    // 3. Extract the potential JSON string
+    let jsonStr = cleanText.substring(firstBrace, lastBrace + 1);
+
+    // 4. Attempt to parse
+    try {
+        return JSON.parse(jsonStr);
+    } catch (parseError) {
+        // Retry strategy: Sometimes model outputs multiple objects like {...} {...}
+        // Try finding the *first* closing brace instead of the last
+        const nextBrace = cleanText.indexOf('}', firstBrace);
+        if (nextBrace !== -1 && nextBrace < lastBrace) {
+            try {
+                const shorterJson = cleanText.substring(firstBrace, nextBrace + 1);
+                return JSON.parse(shorterJson);
+            } catch (e) {
+                // Ignore and throw original error
+            }
+        }
+        
+        // Sanitize trailing commas (common LLM JSON error)
+        jsonStr = jsonStr.replace(/,\s*}/g, '}');
+        return JSON.parse(jsonStr);
+    }
+
+  } catch (error) {
+    console.error("Image Analysis Error:", error);
+    return null;
   }
 };

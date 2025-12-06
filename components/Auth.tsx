@@ -1,16 +1,34 @@
+
 import React, { useState } from 'react';
-import { Activity, Loader2, AlertCircle } from 'lucide-react';
+import { Activity, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { authService, User } from '../services/authService';
 
 interface AuthProps {
   onLogin: (user: User) => void;
 }
 
+const countries = [
+  { code: '+1', flag: '🇺🇸', name: 'USA' },
+  { code: '+44', flag: '🇬🇧', name: 'UK' },
+  { code: '+91', flag: '🇮🇳', name: 'India' },
+  { code: '+61', flag: '🇦🇺', name: 'Australia' },
+  { code: '+81', flag: '🇯🇵', name: 'Japan' },
+  { code: '+49', flag: '🇩🇪', name: 'Germany' },
+  { code: '+33', flag: '🇫🇷', name: 'France' },
+  { code: '+86', flag: '🇨🇳', name: 'China' },
+  { code: '+971', flag: '🇦🇪', name: 'UAE' },
+  { code: '+31', flag: '🇳🇱', name: 'Netherlands' },
+  { code: '+55', flag: '🇧🇷', name: 'Brazil' },
+  { code: '+1', flag: '🇨🇦', name: 'Canada' },
+];
+
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [countryCode, setCountryCode] = useState('+1');
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -38,12 +56,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         if (!formData.email || !formData.password || !formData.name || !formData.phoneNumber) {
           throw new Error("Please fill in all required fields");
         }
+        
+        // Combine country code and phone number
+        const fullPhoneNumber = `${countryCode} ${formData.phoneNumber}`;
+
         user = await authService.register(
           formData.email, 
           formData.password, 
           formData.name, 
           parseInt(formData.age) || 60,
-          formData.phoneNumber
+          fullPhoneNumber
         );
       }
       
@@ -134,17 +156,38 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     placeholder="Margaret Thompson"
                   />
                 </div>
+                
+                {/* Phone Number with Country Code */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Phone Number (For WhatsApp Alerts)</label>
-                  <input
-                    type="tel"
-                    required={!isLogin}
-                    value={formData.phoneNumber}
-                    onChange={e => setFormData({...formData, phoneNumber: e.target.value})}
-                    className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                    placeholder="+1 555 123 4567"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Phone Number (ft. Telegram Alerts)</label>
+                  <div className="flex relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                    <div className="relative border-r border-slate-200 dark:border-slate-700">
+                      <select 
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        className="appearance-none bg-transparent h-full pl-3 pr-8 py-3.5 text-slate-700 dark:text-white font-medium outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm w-24"
+                      >
+                        {countries.map(country => (
+                          <option key={country.code} value={country.code}>
+                            {country.flag} {country.code}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                        <ChevronDown size={14} />
+                      </div>
+                    </div>
+                    <input
+                      type="tel"
+                      required={!isLogin}
+                      value={formData.phoneNumber}
+                      onChange={e => setFormData({...formData, phoneNumber: e.target.value.replace(/\D/g, '')})}
+                      className="flex-1 p-3.5 bg-transparent outline-none font-medium text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 min-w-0"
+                      placeholder="555 123 4567"
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Age (Optional)</label>
                   <input

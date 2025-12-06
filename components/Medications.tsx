@@ -1,7 +1,7 @@
-
-import React, { useState } from 'react';
-import { CheckCircle, Circle, Plus, Clock, Pill, Droplets, Syringe } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { CheckCircle, Circle, Plus, Clock, Pill, Droplets, Syringe, Camera, Loader2 } from 'lucide-react';
 import { Medication } from '../types';
+import { analyzeMedicationImage } from '../services/geminiService';
 
 interface MedicationsProps {
   medications: Medication[];
@@ -11,6 +11,9 @@ interface MedicationsProps {
 
 const Medications: React.FC<MedicationsProps> = ({ medications, onToggleTaken, onAddMedication }) => {
   const [isAdding, setIsAdding] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [newMed, setNewMed] = useState({ 
     name: '', 
     dosage: '', 
@@ -25,6 +28,38 @@ const Medications: React.FC<MedicationsProps> = ({ medications, onToggleTaken, o
     onAddMedication(newMed);
     setIsAdding(false);
     setNewMed({ name: '', dosage: '', time: '', type: 'pill' });
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzing(true);
+    
+    // Convert to Base64
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = (reader.result as string).split(',')[1]; // Remove data url prefix
+      
+      const result = await analyzeMedicationImage(base64String);
+      
+      if (result) {
+        setNewMed({
+          name: result.name,
+          dosage: result.dosage,
+          time: result.time,
+          type: (result.type as any) === 'liquid' || (result.type as any) === 'injection' ? (result.type as any) : 'pill'
+        });
+        setIsAdding(true); // Open the form with pre-filled data
+      } else {
+        alert("Could not analyze image. Please enter details manually.");
+      }
+      setIsAnalyzing(false);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const getIcon = (type: string) => {
@@ -44,26 +79,52 @@ const Medications: React.FC<MedicationsProps> = ({ medications, onToggleTaken, o
            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Medication Schedule</h2>
            <p className="text-slate-500 dark:text-slate-400">Daily prescriptions and adherence tracking.</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(!isAdding)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          <span>{isAdding ? 'Cancel' : 'Add Medication'}</span>
-        </button>
+        
+        <div className="flex gap-2">
+           <input 
+             type="file" 
+             accept="image/*" 
+             ref={fileInputRef} 
+             onChange={handleFileChange} 
+             className="hidden" 
+           />
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             disabled={isAnalyzing}
+             className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-wait"
+           >
+             {isAnalyzing ? <Loader2 size={18} className="animate-spin"/> : <Camera size={18} />}
+             <span>{isAnalyzing ? 'Scanning...' : 'Scan Label'}</span>
+           </button>
+           
+           <button 
+             onClick={() => setIsAdding(!isAdding)}
+             className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition-colors shadow-sm"
+           >
+             <Plus size={18} />
+             <span>{isAdding ? 'Cancel' : 'Add Medication'}</span>
+           </button>
+        </div>
       </div>
 
       {/* Add Medication Form */}
       {isAdding && (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 animate-in slide-in-from-top-4">
-          <h3 className="font-bold text-slate-800 dark:text-white mb-4">Add New Prescription</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-800 dark:text-white">Add New Prescription</h3>
+            {newMed.name && isAnalyzing === false && (
+               <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full flex items-center gap-1">
+                 <Camera size={12}/> Auto-filled from scan
+               </span>
+            )}
+          </div>
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="lg:col-span-2">
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Medication Name</label>
               <input 
                 required 
                 placeholder="e.g. Aspirin" 
-                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white"
+                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white transition-all"
                 value={newMed.name}
                 onChange={e => setNewMed({...newMed, name: e.target.value})}
               />
@@ -73,7 +134,7 @@ const Medications: React.FC<MedicationsProps> = ({ medications, onToggleTaken, o
               <input 
                 required 
                 placeholder="e.g. 100mg" 
-                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white"
+                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white transition-all"
                 value={newMed.dosage}
                 onChange={e => setNewMed({...newMed, dosage: e.target.value})}
               />
@@ -83,14 +144,29 @@ const Medications: React.FC<MedicationsProps> = ({ medications, onToggleTaken, o
               <input 
                 required 
                 type="time"
-                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white"
+                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white transition-all"
                 value={newMed.time}
                 onChange={e => setNewMed({...newMed, time: e.target.value})}
               />
             </div>
-            <div className="flex items-end">
-              <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white p-2.5 rounded-lg font-medium transition-colors">
-                Save
+            
+            {/* Type Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Type</label>
+              <select
+                className="w-full p-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white transition-all"
+                value={newMed.type}
+                onChange={e => setNewMed({...newMed, type: e.target.value as any})}
+              >
+                <option value="pill">Pill</option>
+                <option value="liquid">Liquid</option>
+                <option value="injection">Injection</option>
+              </select>
+            </div>
+
+            <div className="flex items-end lg:col-span-5 justify-end">
+              <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                Save Task
               </button>
             </div>
           </form>

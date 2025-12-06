@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, MessageCircle, AlertTriangle } from 'lucide-react';
+import { X, Send, AlertTriangle } from 'lucide-react';
 
 export type NotificationType = 'whatsapp' | 'system';
 
@@ -25,7 +25,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications, 
           key={notif.id}
           className={`pointer-events-auto w-80 rounded-2xl shadow-2xl transform transition-all duration-500 animate-in slide-in-from-right-full ${
             notif.type === 'whatsapp' 
-              ? 'bg-[#DCF8C6] border-l-4 border-[#25D366]' 
+              ? 'bg-[#E3F2FD] border-l-4 border-[#0088cc]' 
               : 'bg-white dark:bg-slate-800 border-l-4 border-red-500'
           }`}
         >
@@ -39,9 +39,9 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({ notifications, 
 
              <div className="flex items-start space-x-3">
                <div className={`p-2 rounded-full flex-shrink-0 ${
-                 notif.type === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-red-100 text-red-600'
+                 notif.type === 'whatsapp' ? 'bg-[#0088cc] text-white' : 'bg-red-100 text-red-600'
                }`}>
-                 {notif.type === 'whatsapp' ? <MessageCircle size={20} /> : <AlertTriangle size={20} />}
+                 {notif.type === 'whatsapp' ? <Send size={20} /> : <AlertTriangle size={20} />}
                </div>
                <div>
                  <h4 className={`text-sm font-bold mb-1 ${notif.type === 'whatsapp' ? 'text-slate-800' : 'text-slate-800 dark:text-white'}`}>

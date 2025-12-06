@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, Phone, Bell, Shield, Volume2, Plus, Trash2, Save, Activity, Smartphone, MapPin, MessageCircle } from 'lucide-react';
+import { User, Phone, Bell, Shield, Volume2, Plus, Trash2, Save, Activity, Smartphone, MapPin, Send, ExternalLink, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { PatientState, EmergencyContact } from '../types';
 
 interface SettingsProps {
@@ -22,6 +22,13 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
     address: patient.location.address
   });
 
+  // Telegram Config State
+  const [telegramConfig, setTelegramConfig] = useState({
+    botToken: patient.telegramBotToken || '',
+    chatId: patient.telegramChatId || ''
+  });
+  const [showToken, setShowToken] = useState(false);
+
   // Contact Form State
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [newContact, setNewContact] = useState({ name: '', relation: '', phone: '', isPrimary: false });
@@ -34,6 +41,15 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
       location: { ...patient.location, address: profileForm.address }
     });
     alert("Profile updated successfully!");
+  };
+
+  const handleSaveTelegram = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateProfile({
+        telegramBotToken: telegramConfig.botToken.trim(),
+        telegramChatId: telegramConfig.chatId.trim()
+    });
+    alert("Telegram settings saved!");
   };
 
   const handleAddContactSubmit = (e: React.FormEvent) => {
@@ -228,34 +244,82 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
               </div>
 
               <div className="space-y-8">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center space-x-4">
-                      <div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-xl"><Bell size={24} className="text-slate-700 dark:text-slate-300"/></div>
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white text-lg">Push Notifications</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Receive alerts on mobile device</p>
-                      </div>
-                   </div>
-                   <div className="w-14 h-8 bg-emerald-500 rounded-full relative cursor-pointer shadow-inner transition-colors hover:bg-emerald-600">
-                      <div className="absolute right-1 top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-transform"></div>
-                   </div>
-                </div>
+                
+                {/* Telegram Configuration */}
+                <div className="bg-sky-50 dark:bg-sky-900/20 p-5 rounded-xl border border-sky-100 dark:border-sky-800">
+                  <div className="flex items-center space-x-3 mb-4">
+                     <div className="bg-[#0088cc] p-2 rounded-lg text-white"><Send size={20} /></div>
+                     <h4 className="font-bold text-slate-900 dark:text-white">Real Telegram Notifications</h4>
+                  </div>
+                  
+                  <div className="bg-blue-100 dark:bg-blue-900/40 p-4 rounded-lg flex items-start gap-3 mb-6">
+                    <HelpCircle size={18} className="text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                    <div className="text-xs text-blue-800 dark:text-blue-300 space-y-2">
+                       <p className="font-bold">How to connect Telegram:</p>
+                       <ol className="list-decimal ml-4 space-y-1.5">
+                         <li>
+                           Open <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="underline font-bold hover:text-blue-600">@BotFather</a>, create a new bot, and copy the <b>HTTP API Token</b>.
+                         </li>
+                         <li>
+                           Open <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="underline font-bold hover:text-blue-600">@userinfobot</a> to get your personal <b>Id</b>.
+                         </li>
+                         <li>
+                           <b>Start your bot:</b> Search for your new bot's username and click <b>Start</b> (or send <code>/start</code>).
+                         </li>
+                       </ol>
+                    </div>
+                  </div>
 
-                 {/* WhatsApp Test Section */}
-                 <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-6">
-                   <div className="flex items-center space-x-4">
-                      <div className="bg-[#25D366] bg-opacity-20 p-3 rounded-xl"><MessageCircle size={24} className="text-[#25D366]"/></div>
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white text-lg">WhatsApp Bot</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Send a test notification to your phone</p>
-                      </div>
-                   </div>
-                   <button 
-                     onClick={onTestWhatsApp}
-                     className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-lg hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors"
-                   >
-                     Test Bot
-                   </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                        <div className="flex justify-between">
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Bot Token</label>
+                        </div>
+                        <div className="relative mt-1">
+                          <input 
+                            type={showToken ? "text" : "password"}
+                            placeholder="e.g. 123456:ABC-DEF..."
+                            className="w-full p-2.5 pr-10 rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-800 text-sm font-mono text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
+                            value={telegramConfig.botToken}
+                            onChange={(e) => setTelegramConfig({...telegramConfig, botToken: e.target.value})}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowToken(!showToken)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                          >
+                            {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                     </div>
+                     <div>
+                        <div className="flex justify-between">
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Chat ID</label>
+                        </div>
+                        <input 
+                          type="text"
+                          placeholder="e.g. 987654321"
+                          className="w-full p-2.5 mt-1 rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-800 text-sm font-mono text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
+                          value={telegramConfig.chatId}
+                          onChange={(e) => setTelegramConfig({...telegramConfig, chatId: e.target.value})}
+                        />
+                     </div>
+                  </div>
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-sky-200 dark:border-sky-800">
+                     <button 
+                       onClick={handleSaveTelegram}
+                       className="text-sky-700 dark:text-sky-300 font-bold text-sm hover:underline"
+                     >
+                       Save Credentials
+                     </button>
+                     <button 
+                       onClick={onTestWhatsApp}
+                       className="px-4 py-2 bg-[#0088cc] text-white font-bold rounded-lg hover:bg-[#0077b5] transition-colors text-sm shadow-sm flex items-center gap-2"
+                     >
+                       <Send size={14} />
+                       Test Telegram
+                     </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-6">

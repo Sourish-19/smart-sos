@@ -28,7 +28,7 @@ export interface Medication {
   dosage: string;
   time: string;
   taken: boolean;
-  reminderSent?: boolean; // New field to track notifications
+  reminderSent?: boolean; 
   type: 'pill' | 'liquid' | 'injection';
 }
 
@@ -52,11 +52,13 @@ export interface PatientState {
   name: string;
   age: number;
   id: string;
-  phoneNumber?: string; // Added for WhatsApp notifications
+  phoneNumber?: string; 
+  telegramBotToken?: string; // New: For real notifications
+  telegramChatId?: string;   // New: For real notifications
   heartRate: VitalSign;
   bloodPressure: BloodPressure;
   oxygenLevel: VitalSign;
-  glucose: VitalSign;
+  temperature: VitalSign; 
   status: AlertLevel;
   medications: Medication[];
   logs: EmergencyLog[];

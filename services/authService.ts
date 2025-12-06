@@ -5,6 +5,8 @@ export interface User {
   name: string;
   age: number;
   phoneNumber: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
 }
 
 const USERS_KEY = 'smartsos_users';
@@ -54,7 +56,9 @@ export const authService = {
       email: user.email, 
       name: user.name, 
       age: user.age,
-      phoneNumber: user.phoneNumber 
+      phoneNumber: user.phoneNumber,
+      telegramBotToken: user.telegramBotToken,
+      telegramChatId: user.telegramChatId
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
     return sessionUser;
@@ -98,6 +102,34 @@ export const authService = {
   async logout() {
     await delay(300);
     localStorage.removeItem(SESSION_KEY);
+  },
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+    // Simulate API delay
+    await delay(300);
+    
+    const usersStr = localStorage.getItem(USERS_KEY);
+    const users = usersStr ? JSON.parse(usersStr) : [];
+    const index = users.findIndex((u: any) => u.id === userId);
+    
+    if (index === -1) throw new Error("User not found");
+    
+    const updatedUser = { ...users[index], ...updates };
+    users[index] = updatedUser;
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    
+    // Update session if it matches the current user
+    const sessionStr = localStorage.getItem(SESSION_KEY);
+    if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        if (session.id === userId) {
+            // Merge session data with updates (to keep session clean)
+            const updatedSession = { ...session, ...updates };
+            localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+        }
+    }
+    
+    return updatedUser;
   },
 
   getCurrentUser(): User | null {
