@@ -7,11 +7,12 @@ interface DashboardProps {
   patient: PatientState;
   onSpeak: (text: string) => void;
   onSimulateChaos: () => void;
+  onSimulateFall: () => void;
   aiInsight: AIInsight | null;
   loadingAi: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ patient, onSpeak, onSimulateChaos, aiInsight, loadingAi }) => {
+const Dashboard: React.FC<DashboardProps> = ({ patient, onSpeak, onSimulateChaos, onSimulateFall, aiInsight, loadingAi }) => {
   const isCritical = patient.status === AlertLevel.CRITICAL;
   const isWarning = patient.status === AlertLevel.WARNING;
 
@@ -198,12 +199,20 @@ const Dashboard: React.FC<DashboardProps> = ({ patient, onSpeak, onSimulateChaos
                  <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Developer Controls</h4>
                  <p className="text-xs text-slate-400 dark:text-slate-500">Use these to simulate emergency events for the demo.</p>
             </div>
-            <button 
-                onClick={onSimulateChaos}
-                className="bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors"
-            >
-                Simulate Critical Event
-            </button>
+            <div className="flex space-x-3">
+              <button 
+                  onClick={onSimulateFall}
+                  className="bg-slate-600 dark:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 dark:hover:bg-slate-500 transition-colors"
+              >
+                  Simulate Fall
+              </button>
+              <button 
+                  onClick={onSimulateChaos}
+                  className="bg-red-600 dark:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 dark:hover:bg-red-500 transition-colors"
+              >
+                  Simulate Cardiac Event
+              </button>
+            </div>
         </div>
       </div>
     </div>

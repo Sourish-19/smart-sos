@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Download } from 'lucide-react';
@@ -45,14 +46,14 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
     doc.text("BPM", 60, yPos);
     yPos += 5;
     
-    patient.heartRate.history.slice(-10).reverse().forEach((record) => {
+    patient.heartRate.history.slice(-5).reverse().forEach((record) => {
        doc.text(record.time, 20, yPos);
        doc.text(`${Math.round(record.value)}`, 60, yPos);
        yPos += 7;
     });
 
     // Blood Pressure Section
-    yPos += 15;
+    yPos += 10;
     doc.setFontSize(16);
     doc.setTextColor(59, 130, 246); // Blue
     doc.text("Blood Pressure History (Last 24h)", 20, yPos);
@@ -64,9 +65,28 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
     doc.text("Measurement (mmHg)", 60, yPos);
     yPos += 5;
 
-    patient.bloodPressure.history.slice(-10).reverse().forEach((record) => {
+    patient.bloodPressure.history.slice(-5).reverse().forEach((record) => {
        doc.text(record.time, 20, yPos);
        doc.text(`${Math.round(record.systolic)} / ${Math.round(record.diastolic)}`, 60, yPos);
+       yPos += 7;
+    });
+
+    // Temperature Section
+    yPos += 10;
+    doc.setFontSize(16);
+    doc.setTextColor(245, 158, 11); // Amber
+    doc.text("Body Temperature History (Last 24h)", 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text("Time", 20, yPos);
+    doc.text("Temp (°F)", 60, yPos);
+    yPos += 5;
+
+    patient.temperature.history.slice(-5).reverse().forEach((record) => {
+       doc.text(record.time, 20, yPos);
+       doc.text(`${record.value.toFixed(1)}`, 60, yPos);
        yPos += 7;
     });
 
@@ -147,6 +167,28 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
                 />
                 <Line type="monotone" dataKey="systolic" stroke="#3b82f6" strokeWidth={3} dot={false} name="Systolic" />
                 <Line type="monotone" dataKey="diastolic" stroke="#93c5fd" strokeWidth={3} dot={false} name="Diastolic" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Temperature Chart */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 lg:col-span-2">
+          <h3 className="font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
+            <span className="w-2 h-6 bg-amber-500 rounded-full mr-2"></span>
+            Body Temperature (°F)
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={patient.temperature.history}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                <XAxis dataKey="time" hide />
+                <YAxis domain={[96, 104]} tick={{fontSize: 12, fill: textColor}} stroke={gridColor} />
+                <Tooltip 
+                    contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: isDarkMode ? '#1e293b' : '#fff', color: isDarkMode ? '#fff' : '#000'}}
+                    itemStyle={{color: '#f59e0b', fontWeight: 'bold'}}
+                />
+                <Line type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={3} dot={false} name="Temp" />
               </LineChart>
             </ResponsiveContainer>
           </div>

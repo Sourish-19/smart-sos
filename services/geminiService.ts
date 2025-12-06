@@ -96,8 +96,9 @@ export const generateHealthInsight = async (patient: PatientState): Promise<AIIn
       Generate a short health insight based on these numbers.
     `;
 
+    // Using gemini-2.5-flash-lite for low-latency responses
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -175,9 +176,14 @@ export const getChatResponse = async (userMessage: string, patient: PatientState
       User Question: "${userMessage}"
     `;
 
+    // Using gemini-3-pro-preview with thinking mode for complex queries
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-pro-preview',
       contents: contextPrompt,
+      config: {
+        thinkingConfig: { thinkingBudget: 32768 } // Max thinking budget for deep reasoning
+        // maxOutputTokens is intentionally omitted when using thinkingConfig
+      }
     });
 
     return response.text || "I didn't catch that. Could you repeat?";
