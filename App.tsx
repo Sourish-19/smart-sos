@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Menu, Mic, AlertTriangle, Phone, Moon, Sun, Activity } from 'lucide-react';
+import { Menu, Mic, AlertTriangle, Phone, Moon, Sun, Activity, Bell, X, Trash2 } from 'lucide-react';
 import { generateHealthInsight } from './services/geminiService';
 import { authService, User } from './services/authService';
 import { sendTelegramMessage } from './services/telegramService';
@@ -64,6 +64,7 @@ function App() {
   const [isTestMode, setIsTestMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const patientRef = React.useRef(patient);
   
   // Audio Context Ref for Siren
@@ -233,6 +234,12 @@ function App() {
       const currentMinutes = now.getMinutes();
       const currentTotalMinutes = currentHours * 60 + currentMinutes;
 
+      // Identify Primary Caregiver
+      const primaryContact = currentPatient.contacts.find(c => c.isPrimary) || currentPatient.contacts[0];
+      const contactInfo = primaryContact 
+          ? `${primaryContact.name} (${primaryContact.phone})` 
+          : "Emergency Services";
+
       const getMinutesFromMidnight = (timeStr: string) => {
         const [h, m] = timeStr.split(':').map(Number);
         return h * 60 + m;
@@ -257,7 +264,7 @@ function App() {
               timestamp: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
               type: 'Medication Alert',
               resolved: false,
-              notes: `Alert: Medication Missed (${med.name}). Notification sent to caregiver.`
+              notes: `Missed Dose: ${med.name}. Alert sent to ${contactInfo}.`
             };
             newLogs.push(logEntry);
 
@@ -269,10 +276,13 @@ function App() {
       if (updatesNeeded) {
         // 1. Perform Side Effects
         medsToNotify.forEach(med => {
-            const msg = `⚠️ *Medication Reminder*\n\nPatient ${currentPatient.name} missed their dose of *${med.name}* at ${med.time}. Please check on them.`;
+            const msg = `⚠️ *Medication Reminder*\n\nPatient ${currentPatient.name} missed their dose of *${med.name}* at ${med.time}.\n\nAlerting primary contact: ${contactInfo}`;
             notifyCaregiver(msg);
-            speak(`Reminder: You missed your ${med.name}. A notification has been sent to your caregiver.`);
-            addNotification('whatsapp', 'Medication Reminder', `You missed your ${med.name} dose at ${med.time}. Please take it now.`);
+            
+            const spokenMsg = `Attention. You missed your ${med.name}. I have notified ${primaryContact ? primaryContact.name : 'your caregiver'}.`;
+            speak(spokenMsg);
+            
+            addNotification('whatsapp', 'Medication Missed', `Alert sent to ${contactInfo}. Please take ${med.name}.`);
         });
 
         // 2. Update State
@@ -572,6 +582,8 @@ function App() {
           onNavigate={(page) => { setCurrentPage(page); setIsSidebarOpen(false); }} 
           userName={patient.name}
           onLogout={handleLogout}
+          isDarkMode={isDarkMode}
+          onToggleTheme={() => setIsDarkMode(!isDarkMode)}
         />
       </div>
 
@@ -584,13 +596,58 @@ function App() {
           </button>
 
           <div className="flex items-center space-x-2 md:space-x-4 ml-auto">
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
+             <div className="relative">
+                <button
+                  onClick={() => setShowNotificationPanel(!showNotificationPanel)}
+                  className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative"
+                  title="Notifications"
+                >
+                  <Bell size={20} />
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown Panel */}
+                {showNotificationPanel && (
+                  <div className="absolute top-12 right-0 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-right">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                       <h3 className="font-bold text-slate-900 dark:text-white text-sm">Notifications</h3>
+                       {notifications.length > 0 && (
+                         <button 
+                           onClick={() => setNotifications([])} 
+                           className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                         >
+                           <Trash2 size={12}/> Clear All
+                         </button>
+                       )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                       {notifications.length === 0 ? (
+                          <div className="p-8 text-center">
+                             <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-full inline-block mb-2">
+                                <Bell className="text-slate-400" size={20}/>
+                             </div>
+                             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No new notifications</p>
+                          </div>
+                       ) : (
+                          notifications.map((n) => (
+                            <div key={n.id} className="p-4 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                               <div className="flex justify-between items-start mb-1">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${n.type === 'whatsapp' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+                                    {n.type === 'whatsapp' ? 'Message' : 'System Alert'}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">{n.timestamp}</span>
+                               </div>
+                               <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-1">{n.title}</h4>
+                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{n.message}</p>
+                            </div>
+                          ))
+                       )}
+                    </div>
+                  </div>
+                )}
+             </div>
 
             <button 
               onClick={() => speak(`Hello ${patient.name}. Your vitals are being monitored. Heart rate is ${patient.heartRate.value} beats per minute.`)}

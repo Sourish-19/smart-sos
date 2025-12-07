@@ -45,6 +45,10 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
 
   const handleSaveTelegram = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!telegramConfig.botToken.trim() || !telegramConfig.chatId.trim()) {
+      alert("Please enter both Bot Token and Chat ID before saving.");
+      return;
+    }
     onUpdateProfile({
         telegramBotToken: telegramConfig.botToken.trim(),
         telegramChatId: telegramConfig.chatId.trim()
@@ -282,6 +286,8 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
                             className="w-full p-2.5 pr-10 rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-800 text-sm font-mono text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
                             value={telegramConfig.botToken}
                             onChange={(e) => setTelegramConfig({...telegramConfig, botToken: e.target.value})}
+                            autoComplete="off"
+                            spellCheck="false"
                           />
                           <button 
                             type="button"
@@ -302,6 +308,8 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
                           className="w-full p-2.5 mt-1 rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-800 text-sm font-mono text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
                           value={telegramConfig.chatId}
                           onChange={(e) => setTelegramConfig({...telegramConfig, chatId: e.target.value})}
+                          autoComplete="off"
+                          spellCheck="false"
                         />
                      </div>
                   </div>

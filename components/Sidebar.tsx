@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Activity, Pill, AlertTriangle, Settings, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Activity, Pill, AlertTriangle, Settings, User, LogOut, Sun, Moon } from 'lucide-react';
 import { PageView } from '../types';
 
 interface SidebarProps {
@@ -8,9 +8,11 @@ interface SidebarProps {
   onNavigate: (page: PageView) => void;
   userName: string;
   onLogout: () => void;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, userName, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, userName, onLogout, isDarkMode, onToggleTheme }) => {
   const NavItem = ({ page, icon: Icon, label, alertCount }: { page: PageView; icon: any; label: string; alertCount?: number }) => (
     <button
       onClick={() => onNavigate(page)}
@@ -55,6 +57,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, userName, on
       </div>
 
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+        <button
+          onClick={onToggleTheme}
+          className="w-full flex items-center space-x-3 px-4 py-3 mb-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+        >
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          <span className="font-medium">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
+
         <div className="flex items-center space-x-3 px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
           <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold">
             {userName.charAt(0)}

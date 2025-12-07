@@ -51,9 +51,9 @@ const Dashboard: React.FC<DashboardProps> = ({ patient, onSpeak, onSimulateChaos
   return (
     <div className="space-y-6">
       {/* Status Header */}
-      <div className={`rounded-2xl p-6 text-white shadow-lg transition-all duration-700 ease-in-out transform border-2 ${
+      <div className={`rounded-2xl p-6 text-white shadow-lg transition-all duration-1000 ease-in-out transform border-2 ${
         isCritical 
-          ? 'bg-red-600 border-red-500 animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.6)] scale-[1.02]' 
+          ? 'bg-red-600 border-red-500 animate-pulse shadow-[0_0_40px_rgba(220,38,38,0.6)] scale-[1.02] ring-4 ring-red-400/30' 
           : isWarning 
             ? 'bg-amber-500 border-amber-400 shadow-amber-500/40' 
             : 'bg-emerald-500 border-emerald-400 shadow-emerald-500/40 hover:scale-[1.005]'

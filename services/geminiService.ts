@@ -135,43 +135,45 @@ export const getChatResponse = async (userMessage: string, patient: PatientState
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // 1. Extract Recent Logs (History)
+    // 1. Extract Recent Logs (History) - formatted for clarity
     const recentLogs = patient.logs
       .slice(0, 3)
-      .map(log => `- [${log.timestamp}] ${log.type}: ${log.notes}`)
-      .join('\n      ') || "No recent incidents.";
+      .map(log => `• [${log.timestamp}] ${log.type}: ${log.notes} (${log.resolved ? 'Resolved' : 'Active'})`)
+      .join('\n      ') || "No recent incidents recorded.";
 
     // 2. Extract Medication Adherence
     const totalMeds = patient.medications.length;
     const takenMeds = patient.medications.filter(m => m.taken).length;
     const pendingMeds = patient.medications.filter(m => !m.taken).map(m => m.name);
     
-    const adherenceInfo = totalMeds > 0
-      ? `${takenMeds}/${totalMeds} taken today. (Pending: ${pendingMeds.length > 0 ? pendingMeds.join(', ') : 'None'})`
-      : "No active medications scheduled.";
+    let adherenceInfo = "No active medications scheduled.";
+    if (totalMeds > 0) {
+        const compliance = Math.round((takenMeds / totalMeds) * 100);
+        const pendingStr = pendingMeds.length > 0 ? `Pending: ${pendingMeds.join(', ')}` : 'All taken';
+        adherenceInfo = `Compliance: ${compliance}% (${takenMeds}/${totalMeds} taken). ${pendingStr}.`;
+    }
 
     // 3. Inject Context
     const contextPrompt = `
       [SYSTEM CONTEXT - HIDDEN FROM USER]
-      Patient Name: ${patient.name}
+      Patient Name: ${patient.name} (${patient.age} years old)
       
       Current Vitals:
-      - Heart Rate: ${patient.heartRate.value} bpm
+      - Heart Rate: ${patient.heartRate.value} bpm (${patient.heartRate.trend})
       - BP: ${patient.bloodPressure.systolic}/${patient.bloodPressure.diastolic} mmHg
       - SpO2: ${patient.oxygenLevel.value}%
       - Temperature: ${patient.temperature.value} °F
-      - Status: ${patient.status}
+      - Overall Status: ${patient.status}
       - Location: ${patient.location.address}
 
-      Medical History Context:
-      - Recent Alerts/Logs (Last 3):
+      Recent Medical History (Last 3 Events):
       ${recentLogs}
       
-      - Medication Adherence:
+      Medication Status:
       ${adherenceInfo}
       
       Instruction: Answer the user's question acting as a helpful medical assistant. Be concise and reassuring. 
-      Use the medical history or medication context if relevant to the user's question (e.g. if they ask about pills or past alerts).
+      Use the medical history or medication context if the user asks about past events or pills.
       
       User Question: "${userMessage}"
     `;
