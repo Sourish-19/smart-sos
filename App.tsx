@@ -10,11 +10,13 @@ import VitalsTrends from './components/VitalsTrends';
 import Medications from './components/Medications';
 import EmergencyLog from './components/EmergencyLog';
 import Settings from './components/Settings';
+import HealthTips from './components/HealthTips';
+import NutritionTracker from './components/NutritionTracker';
 import Auth from './components/Auth';
 import LandingPage from './components/LandingPage';
 import ChatAssistant from './components/ChatAssistant';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
-import { PageView, PatientState, AlertLevel, AIInsight, Medication, EmergencyLog as EmergencyLogType, EmergencyContact } from './types';
+import { PageView, PatientState, AlertLevel, AIInsight, Medication, EmergencyLog as EmergencyLogType, EmergencyContact, NutritionState } from './types';
 
 // Initial Mock Data Structure (Actual data will be hydrated with User info)
 const INITIAL_PATIENT: PatientState = {
@@ -38,6 +40,21 @@ const INITIAL_PATIENT: PatientState = {
   temperature: { 
     value: 98.6, unit: '°F', label: 'Temperature', trend: 'stable', lastUpdated: 'Now', 
     history: Array.from({length: 20}, (_, i) => ({ time: `${i}:00`, value: 98.4 + Math.random() * 0.5 })) 
+  },
+  steps: {
+    value: 4250, unit: 'steps', label: 'Steps', trend: 'up', lastUpdated: 'Now', history: []
+  },
+  nutrition: {
+    isConfigured: false, // Default to false to trigger onboarding
+    weight: 0, // kg
+    height: 0, // cm
+    goal: 'maintain',
+    activityLevel: 'light',
+    dailyCalorieTarget: 2000,
+    caloriesConsumed: 0,
+    macros: { protein: 0, carbs: 0, fats: 0 },
+    meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
+    waterIntake: 0
   },
   medications: [
     { id: '1', name: 'Lisinopril', dosage: '10mg', time: '08:00', taken: true, type: 'pill', reminderSent: false },
@@ -103,7 +120,8 @@ function App() {
       age: user.age,
       phoneNumber: user.phoneNumber,
       telegramBotToken: user.telegramBotToken || '',
-      telegramChatId: user.telegramChatId || ''
+      telegramChatId: user.telegramChatId || '',
+      nutrition: user.nutrition || prev.nutrition
     }));
     setIsAuthenticated(true);
     setShowLanding(false);
@@ -316,6 +334,9 @@ function App() {
         // Simulate Temperature fluctuations
         let newTemp = 98.6 + (Math.random() * 0.8 - 0.4); // 98.2 to 99.0
 
+        // IoT Steps Simulation: Increment occasionally
+        const stepInc = Math.random() > 0.7 ? Math.floor(Math.random() * 5) : 0;
+
         const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
         const newHrHistory = [...prev.heartRate.history.slice(1), { time: timestamp, value: newHr }];
@@ -326,7 +347,8 @@ function App() {
           ...prev,
           heartRate: { ...prev.heartRate, value: Math.floor(newHr), history: newHrHistory },
           bloodPressure: { ...prev.bloodPressure, systolic: Math.floor(newSys), history: newBpHistory },
-          temperature: { ...prev.temperature, value: newTemp, history: newTempHistory }
+          temperature: { ...prev.temperature, value: newTemp, history: newTempHistory },
+          steps: { ...prev.steps, value: prev.steps.value + stepInc }
         };
       });
     }, 2000); 
@@ -489,6 +511,19 @@ function App() {
 
   const handleRemoveContact = (id: string) => {
     setPatient(prev => ({ ...prev, contacts: prev.contacts.filter(c => c.id !== id) }));
+  };
+  
+  const handleUpdateNutrition = async (newNutrition: NutritionState) => {
+    setPatient(prev => ({
+        ...prev,
+        nutrition: newNutrition
+    }));
+
+    // Persist nutrition state to authService
+    const user = authService.getCurrentUser();
+    if (user) {
+      await authService.updateUser(user.id, { nutrition: newNutrition });
+    }
   };
 
   // --- SOS Countdown Logic & Audio ---
@@ -690,6 +725,13 @@ function App() {
               />
             )}
             {currentPage === 'logs' && <EmergencyLog logs={patient.logs} />}
+            {currentPage === 'health-tips' && <HealthTips onNotification={addNotification} />}
+            {currentPage === 'nutrition' && (
+                <NutritionTracker 
+                    patient={patient} 
+                    onUpdateNutrition={handleUpdateNutrition} 
+                />
+            )}
             {currentPage === 'settings' && (
               <Settings 
                 patient={patient}

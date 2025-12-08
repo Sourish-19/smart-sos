@@ -238,11 +238,8 @@ export const analyzeMedicationImage = async (base64Image: string): Promise<{ nam
 
     const text = response.text || "";
     
-    // Robust extraction strategy
-    // 1. Strip Markdown code blocks if they exist
     let cleanText = text.replace(/```json\n?|```/g, '').trim();
     
-    // 2. Locate the first '{' and the last '}'
     const firstBrace = cleanText.indexOf('{');
     const lastBrace = cleanText.lastIndexOf('}');
     
@@ -250,32 +247,81 @@ export const analyzeMedicationImage = async (base64Image: string): Promise<{ nam
         throw new Error("No JSON object found in response");
     }
 
-    // 3. Extract the potential JSON string
     let jsonStr = cleanText.substring(firstBrace, lastBrace + 1);
 
-    // 4. Attempt to parse
     try {
         return JSON.parse(jsonStr);
     } catch (parseError) {
-        // Retry strategy: Sometimes model outputs multiple objects like {...} {...}
-        // Try finding the *first* closing brace instead of the last
         const nextBrace = cleanText.indexOf('}', firstBrace);
         if (nextBrace !== -1 && nextBrace < lastBrace) {
             try {
                 const shorterJson = cleanText.substring(firstBrace, nextBrace + 1);
                 return JSON.parse(shorterJson);
             } catch (e) {
-                // Ignore and throw original error
+                // Ignore
             }
         }
-        
-        // Sanitize trailing commas (common LLM JSON error)
         jsonStr = jsonStr.replace(/,\s*}/g, '}');
         return JSON.parse(jsonStr);
     }
 
   } catch (error) {
     console.error("Image Analysis Error:", error);
+    return null;
+  }
+};
+
+export const analyzeFoodImage = async (base64Image: string): Promise<{ name: string; calories: number; protein: number; carbs: number; fats: number } | null> => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    // Simulation fallback
+    return new Promise(resolve => setTimeout(() => resolve({
+      name: "Simulated Grilled Chicken Salad",
+      calories: 350,
+      protein: 30,
+      carbs: 15,
+      fats: 18
+    }), 2500));
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: [
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Image
+          }
+        },
+        {
+          text: `Analyze this image of a meal or food item.
+          Identify the food and estimate its nutritional content (Calories, Protein, Carbs, Fat) for the visible portion.
+          
+          Return STRICT JSON ONLY. 
+          - Do not use Markdown code blocks. 
+          - Do not add explanation.
+          Format: { "name": "Food Name", "calories": 0, "protein": 0, "carbs": 0, "fats": 0 }`
+        }
+      ]
+    });
+
+    const text = response.text || "";
+    let cleanText = text.replace(/```json\n?|```/g, '').trim();
+    const firstBrace = cleanText.indexOf('{');
+    const lastBrace = cleanText.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON found");
+    
+    let jsonStr = cleanText.substring(firstBrace, lastBrace + 1);
+    jsonStr = jsonStr.replace(/,\s*}/g, '}'); // Remove trailing commas
+
+    return JSON.parse(jsonStr);
+
+  } catch (error) {
+    console.error("Food Analysis Error:", error);
     return null;
   }
 };

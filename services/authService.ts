@@ -1,4 +1,6 @@
 
+import { NutritionState } from '../types';
+
 export interface User {
   id: string;
   email: string;
@@ -7,6 +9,7 @@ export interface User {
   phoneNumber: string;
   telegramBotToken?: string;
   telegramChatId?: string;
+  nutrition?: NutritionState;
 }
 
 const USERS_KEY = 'smartsos_users';
@@ -14,6 +17,20 @@ const SESSION_KEY = 'smartsos_session';
 
 // Helper to simulate network latency
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Default nutrition state for new users
+const DEFAULT_NUTRITION: NutritionState = {
+  isConfigured: false,
+  weight: 0,
+  height: 0,
+  goal: 'maintain',
+  activityLevel: 'light',
+  dailyCalorieTarget: 2000,
+  caloriesConsumed: 0,
+  macros: { protein: 0, carbs: 0, fats: 0 },
+  meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
+  waterIntake: 0
+};
 
 export const authService = {
   /**
@@ -23,13 +40,15 @@ export const authService = {
     try {
       const usersStr = localStorage.getItem(USERS_KEY);
       if (!usersStr) {
+        // Removed : User type annotation to allow password field in storage object
         const demoUser = {
           id: 'user_demo_1',
           email: 'margaret@example.com',
           password: 'password', // Storing plain text for MVP demo only
           name: 'Margaret Thompson',
           age: 72,
-          phoneNumber: '+15550109988'
+          phoneNumber: '+15550109988',
+          nutrition: DEFAULT_NUTRITION
         };
         localStorage.setItem(USERS_KEY, JSON.stringify([demoUser]));
       }
@@ -51,14 +70,20 @@ export const authService = {
       throw new Error('Invalid email or password');
     }
     
-    const sessionUser = { 
+    // Ensure nutrition object exists even for old users
+    if (!user.nutrition) {
+      user.nutrition = DEFAULT_NUTRITION;
+    }
+    
+    const sessionUser: User = { 
       id: user.id, 
       email: user.email, 
       name: user.name, 
       age: user.age,
       phoneNumber: user.phoneNumber,
       telegramBotToken: user.telegramBotToken,
-      telegramChatId: user.telegramChatId
+      telegramChatId: user.telegramChatId,
+      nutrition: user.nutrition
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
     return sessionUser;
@@ -81,19 +106,21 @@ export const authService = {
       password,
       name,
       age,
-      phoneNumber
+      phoneNumber,
+      nutrition: DEFAULT_NUTRITION
     };
 
     users.push(newUser);
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
     
     // Auto login
-    const sessionUser = { 
+    const sessionUser: User = { 
       id: newUser.id, 
       email: newUser.email, 
       name: newUser.name, 
       age: newUser.age,
-      phoneNumber: newUser.phoneNumber 
+      phoneNumber: newUser.phoneNumber,
+      nutrition: newUser.nutrition
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
     return sessionUser;

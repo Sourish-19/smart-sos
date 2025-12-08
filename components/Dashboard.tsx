@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Heart, Activity, Thermometer, Wind, MapPin, PlayCircle, Maximize2, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { Heart, Activity, Thermometer, Wind, MapPin, PlayCircle, Maximize2, CheckCircle, AlertCircle, Sparkles, Footprints } from 'lucide-react';
 import { PatientState, AlertLevel, AIInsight } from '../types';
 
 interface DashboardProps {
@@ -189,6 +189,16 @@ const Dashboard: React.FC<DashboardProps> = ({ patient, onSpeak, onSimulateChaos
                 ></iframe>
              </div>
         </div>
+
+         {/* 7. Steps Count (New IoT) */}
+         <StatusCard 
+          label="Daily Steps" 
+          value={patient.steps.value.toLocaleString()} 
+          unit="steps" 
+          icon={Footprints} 
+          color="bg-violet-500"
+          subtext="Goal: 6,000 steps"
+        />
 
       </div>
       

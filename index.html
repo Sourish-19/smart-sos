@@ -22,13 +22,13 @@
       body {
         font-family: 'Inter', sans-serif;
       }
-      /* Custom scrollbar for dashboard tables */
-      .hide-scrollbar::-webkit-scrollbar {
-        display: none;
+      /* Global scrollbar hide for cleaner UI */
+      * {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
       }
-      .hide-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+      *::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
       }
     </style>
   <script type="importmap">
@@ -39,6 +39,7 @@
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
     "jspdf": "https://aistudiocdn.com/jspdf@^2.5.1"
   }
@@ -47,6 +48,7 @@
 </head>
   <body class="bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
     <div id="root"></div>
+    <div id="modal-root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

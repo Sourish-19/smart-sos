@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Activity, Pill, AlertTriangle, Settings, User, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Activity, Pill, AlertTriangle, Settings, User, LogOut, Sun, Moon, Sparkles, Utensils } from 'lucide-react';
 import { PageView } from '../types';
 
 interface SidebarProps {
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, userName, on
         <span className="text-xl font-bold text-slate-800 dark:text-white">SmartSOS</span>
       </div>
 
-      <div className="flex-1 px-4 py-6 overflow-y-auto">
+      <div className="flex-1 px-4 py-6 overflow-y-auto hide-scrollbar">
         <div className="mb-6">
           <p className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Menu</p>
           <NavItem page="dashboard" icon={LayoutDashboard} label="Dashboard" />
@@ -51,6 +51,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, userName, on
         </div>
 
         <div>
+           <p className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Wellness</p>
+           <NavItem page="nutrition" icon={Utensils} label="Diet & Nutrition" />
+           <NavItem page="health-tips" icon={Sparkles} label="Health Tips" />
+        </div>
+
+        <div className="mt-6">
           <p className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Account</p>
           <NavItem page="settings" icon={Settings} label="Settings & Profile" />
         </div>
