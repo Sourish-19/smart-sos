@@ -12,11 +12,24 @@ import EmergencyLog from './components/EmergencyLog';
 import Settings from './components/Settings';
 import HealthTips from './components/HealthTips';
 import NutritionTracker from './components/NutritionTracker';
+import StepsTracker from './components/StepsTracker';
+import SleepTracker from './components/SleepTracker';
 import Auth from './components/Auth';
 import LandingPage from './components/LandingPage';
 import ChatAssistant from './components/ChatAssistant';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
 import { PageView, PatientState, AlertLevel, AIInsight, Medication, EmergencyLog as EmergencyLogType, EmergencyContact, NutritionState } from './types';
+
+// Helper to generate mock history for steps
+const generateStepHistory = () => {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return days.map((day, i) => ({
+    date: day,
+    count: Math.floor(Math.random() * 8000) + 2000,
+    target: 6000,
+    met: Math.random() > 0.4
+  }));
+};
 
 // Initial Mock Data Structure (Actual data will be hydrated with User info)
 const INITIAL_PATIENT: PatientState = {
@@ -43,6 +56,25 @@ const INITIAL_PATIENT: PatientState = {
   },
   steps: {
     value: 4250, unit: 'steps', label: 'Steps', trend: 'up', lastUpdated: 'Now', history: []
+  },
+  dailyStepGoal: 6000,
+  stepPoints: 1250,
+  stepHistory: generateStepHistory(),
+  sleep: {
+    score: 85,
+    duration: "7h 12m",
+    bedTime: "10:30 PM",
+    wakeTime: "06:45 AM",
+    stages: { deep: 18, light: 58, rem: 22, awake: 2 },
+    history: [
+        { day: 'Sun', hours: 6.5, score: 72 },
+        { day: 'Mon', hours: 7.2, score: 85 },
+        { day: 'Tue', hours: 6.8, score: 78 },
+        { day: 'Wed', hours: 7.5, score: 88 },
+        { day: 'Thu', hours: 7.0, score: 82 },
+        { day: 'Fri', hours: 5.5, score: 60 },
+        { day: 'Sat', hours: 8.0, score: 92 },
+    ]
   },
   nutrition: {
     isConfigured: false, // Default to false to trigger onboarding
@@ -335,7 +367,14 @@ function App() {
         let newTemp = 98.6 + (Math.random() * 0.8 - 0.4); // 98.2 to 99.0
 
         // IoT Steps Simulation: Increment occasionally
-        const stepInc = Math.random() > 0.7 ? Math.floor(Math.random() * 5) : 0;
+        const stepInc = Math.random() > 0.6 ? Math.floor(Math.random() * 8) + 2 : 0;
+        
+        // Award points if goal met (simulation logic)
+        let newPoints = prev.stepPoints;
+        if (prev.steps.value + stepInc >= prev.dailyStepGoal && prev.steps.value < prev.dailyStepGoal) {
+            newPoints += 50; // Bonus for crossing line
+            addNotification('system', 'Daily Goal Reached!', `You've hit ${prev.dailyStepGoal} steps. +50 pts!`);
+        }
 
         const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
@@ -348,13 +387,22 @@ function App() {
           heartRate: { ...prev.heartRate, value: Math.floor(newHr), history: newHrHistory },
           bloodPressure: { ...prev.bloodPressure, systolic: Math.floor(newSys), history: newBpHistory },
           temperature: { ...prev.temperature, value: newTemp, history: newTempHistory },
-          steps: { ...prev.steps, value: prev.steps.value + stepInc }
+          steps: { ...prev.steps, value: prev.steps.value + stepInc },
+          stepPoints: newPoints
         };
       });
     }, 2000); 
 
     return () => clearInterval(interval);
   }, [isAuthenticated]);
+
+  const handleUpdateStepGoal = (newGoal: number) => {
+    setPatient(prev => ({
+        ...prev,
+        dailyStepGoal: newGoal
+    }));
+    addNotification('system', 'Goal Updated', `Daily step target set to ${newGoal.toLocaleString()}`);
+  };
 
   const handleManualSOS = (type: 'cardiac' | 'fall' = 'cardiac') => {
     setIsTestMode(false);
@@ -714,6 +762,7 @@ function App() {
                 onSimulateFall={triggerFall}
                 aiInsight={aiInsight}
                 loadingAi={loadingAi}
+                onNavigate={setCurrentPage}
               />
             )}
             {currentPage === 'trends' && <VitalsTrends patient={patient} isDarkMode={isDarkMode} />}
@@ -731,6 +780,15 @@ function App() {
                     patient={patient} 
                     onUpdateNutrition={handleUpdateNutrition} 
                 />
+            )}
+            {currentPage === 'steps' && (
+                <StepsTracker 
+                    patient={patient}
+                    onUpdateGoal={handleUpdateStepGoal}
+                />
+            )}
+            {currentPage === 'sleep' && (
+                <SleepTracker patient={patient} />
             )}
             {currentPage === 'settings' && (
               <Settings 

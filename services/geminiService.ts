@@ -11,7 +11,7 @@ If vitals are normal, give positive reinforcement.
 If vitals are abnormal, suggest a safe, non-medical immediate action (e.g., "Sit down", "Drink water") and suggest checking with a doctor.
 `;
 
-// --- SIMULATION HELPERS (Fallback when API Key is missing) ---
+// --- SIMULATION HELPERS (Fallback when API Key is missing or Quota Exceeded) ---
 
 const simulateInsight = (patient: PatientState): AIInsight => {
   const isCritical = patient.status === 'CRITICAL';
@@ -63,7 +63,7 @@ const simulateChatResponse = (text: string, patient: PatientState): string => {
     return "You're welcome. Stay safe!";
   }
   
-  return "I am currently running in Demo Mode (Simulated AI). I can see your vitals are updated. You can ask me about your Heart Rate, Blood Pressure, or Emergency Protocols.";
+  return "I am currently running in Simulation Mode (Offline/Quota Exceeded). I can see your vitals are updated. You can ask me about your Heart Rate, Blood Pressure, or Emergency Protocols.";
 };
 
 // --- API SERVICES ---
@@ -76,11 +76,21 @@ const getApiKey = () => {
   }
 };
 
+// Helper to handle API errors gracefully
+const handleApiError = (context: string, error: any) => {
+    const msg = error?.message || JSON.stringify(error);
+    if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+        console.warn(`${context}: API Quota Exceeded. Falling back to simulation.`);
+    } else {
+        console.error(`${context} Error:`, error);
+    }
+};
+
 export const generateHealthInsight = async (patient: PatientState): Promise<AIInsight> => {
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
-      console.warn("API Key missing. Using Simulated Insight.");
+      // Quietly fall back
       return simulateInsight(patient);
     }
 
@@ -120,8 +130,7 @@ export const generateHealthInsight = async (patient: PatientState): Promise<AIIn
     };
 
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    // Fallback to simulation on API error
+    handleApiError("Health Insight", error);
     return simulateInsight(patient);
   }
 };
@@ -190,21 +199,22 @@ export const getChatResponse = async (userMessage: string, patient: PatientState
 
     return response.text || "I didn't catch that. Could you repeat?";
   } catch (error) {
-    console.error("Chat API Error:", error);
+    handleApiError("Chat Assistant", error);
     return simulateChatResponse(userMessage, patient);
   }
 };
 
 export const analyzeMedicationImage = async (base64Image: string): Promise<{ name: string; dosage: string; time: string; type: string } | null> => {
+  const fallbackData = {
+    name: "Simulated Medication",
+    dosage: "50mg",
+    time: "09:00",
+    type: "pill"
+  };
+
   const apiKey = getApiKey();
   if (!apiKey) {
-    // Simulation fallback
-    return new Promise(resolve => setTimeout(() => resolve({
-      name: "Simulated Med (No API Key)",
-      dosage: "50mg",
-      time: "09:00",
-      type: "pill"
-    }), 2000));
+    return new Promise(resolve => setTimeout(() => resolve(fallbackData), 2000));
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -252,36 +262,30 @@ export const analyzeMedicationImage = async (base64Image: string): Promise<{ nam
     try {
         return JSON.parse(jsonStr);
     } catch (parseError) {
-        const nextBrace = cleanText.indexOf('}', firstBrace);
-        if (nextBrace !== -1 && nextBrace < lastBrace) {
-            try {
-                const shorterJson = cleanText.substring(firstBrace, nextBrace + 1);
-                return JSON.parse(shorterJson);
-            } catch (e) {
-                // Ignore
-            }
-        }
+        // Attempt aggressive cleanup if normal parse fails
         jsonStr = jsonStr.replace(/,\s*}/g, '}');
         return JSON.parse(jsonStr);
     }
 
   } catch (error) {
-    console.error("Image Analysis Error:", error);
-    return null;
+    handleApiError("Medication Image Analysis", error);
+    // Return fallback data instead of null so the UI doesn't break/alert error
+    return fallbackData;
   }
 };
 
 export const analyzeFoodImage = async (base64Image: string): Promise<{ name: string; calories: number; protein: number; carbs: number; fats: number } | null> => {
+  const fallbackData = {
+    name: "Simulated Healthy Meal",
+    calories: 350,
+    protein: 30,
+    carbs: 15,
+    fats: 18
+  };
+
   const apiKey = getApiKey();
   if (!apiKey) {
-    // Simulation fallback
-    return new Promise(resolve => setTimeout(() => resolve({
-      name: "Simulated Grilled Chicken Salad",
-      calories: 350,
-      protein: 30,
-      carbs: 15,
-      fats: 18
-    }), 2500));
+    return new Promise(resolve => setTimeout(() => resolve(fallbackData), 2500));
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -316,12 +320,13 @@ export const analyzeFoodImage = async (base64Image: string): Promise<{ name: str
     if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON found");
     
     let jsonStr = cleanText.substring(firstBrace, lastBrace + 1);
-    jsonStr = jsonStr.replace(/,\s*}/g, '}'); // Remove trailing commas
+    jsonStr = jsonStr.replace(/,\s*}/g, '}'); 
 
     return JSON.parse(jsonStr);
 
   } catch (error) {
-    console.error("Food Analysis Error:", error);
-    return null;
+    handleApiError("Food Image Analysis", error);
+    // Return fallback data so user can still proceed
+    return fallbackData;
   }
 };

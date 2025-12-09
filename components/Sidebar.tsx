@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Activity, Pill, AlertTriangle, Settings, User, LogOut, Sun, Moon, Sparkles, Utensils } from 'lucide-react';
+import { LayoutDashboard, Activity, Pill, AlertTriangle, Settings, User, LogOut, Sun, Moon, Sparkles, Utensils, Footprints, BedDouble } from 'lucide-react';
 import { PageView } from '../types';
 
 interface SidebarProps {
@@ -53,6 +53,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, userName, on
         <div>
            <p className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Wellness</p>
            <NavItem page="nutrition" icon={Utensils} label="Diet & Nutrition" />
+           <NavItem page="steps" icon={Footprints} label="Activity & Steps" />
+           <NavItem page="sleep" icon={BedDouble} label="Sleep Cycle" />
            <NavItem page="health-tips" icon={Sparkles} label="Health Tips" />
         </div>
 

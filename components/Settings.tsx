@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, Phone, Bell, Shield, Volume2, Plus, Trash2, Save, Activity, Smartphone, MapPin, Send, ExternalLink, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { PatientState, EmergencyContact } from '../types';
@@ -28,6 +27,9 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
     chatId: patient.telegramChatId || ''
   });
   const [showToken, setShowToken] = useState(false);
+
+  // Alarm Volume State
+  const [volume, setVolume] = useState(80);
 
   // Contact Form State
   const [isAddingContact, setIsAddingContact] = useState(false);
@@ -338,7 +340,20 @@ const Settings: React.FC<SettingsProps> = ({ patient, onUpdateProfile, onAddCont
                         <p className="text-sm text-slate-500 dark:text-slate-400">Volume level for SOS siren</p>
                       </div>
                    </div>
-                   <input type="range" className="w-40 h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                   <div className="flex items-center gap-4">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={volume} 
+                        onChange={(e) => setVolume(Number(e.target.value))}
+                        className="w-40 h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          background: `linear-gradient(to right, #2563eb 0%, #2563eb ${volume}%, #e2e8f0 ${volume}%, #e2e8f0 100%)`
+                        }}
+                      />
+                      <span className="text-sm font-bold text-blue-600 w-8">{volume}%</span>
+                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">

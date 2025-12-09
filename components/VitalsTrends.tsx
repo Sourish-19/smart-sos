@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Download } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import { PatientState } from '../types';
@@ -99,7 +99,7 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Health Trends</h2>
@@ -158,16 +158,26 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={patient.bloodPressure.history}>
+              <AreaChart data={patient.bloodPressure.history}>
+                <defs>
+                  <linearGradient id="colorBpSys" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorBpDia" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#93c5fd" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                 <XAxis dataKey="time" hide />
                 <YAxis domain={[50, 180]} tick={{fontSize: 12, fill: textColor}} stroke={gridColor} />
                 <Tooltip 
                     contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: isDarkMode ? '#1e293b' : '#fff', color: isDarkMode ? '#fff' : '#000'}}
                 />
-                <Line type="monotone" dataKey="systolic" stroke="#3b82f6" strokeWidth={3} dot={false} name="Systolic" />
-                <Line type="monotone" dataKey="diastolic" stroke="#93c5fd" strokeWidth={3} dot={false} name="Diastolic" />
-              </LineChart>
+                <Area type="monotone" dataKey="systolic" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBpSys)" name="Systolic" />
+                <Area type="monotone" dataKey="diastolic" stroke="#93c5fd" strokeWidth={3} fillOpacity={1} fill="url(#colorBpDia)" name="Diastolic" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -180,7 +190,13 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={patient.temperature.history}>
+              <AreaChart data={patient.temperature.history}>
+                <defs>
+                  <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                 <XAxis dataKey="time" hide />
                 <YAxis domain={[96, 104]} tick={{fontSize: 12, fill: textColor}} stroke={gridColor} />
@@ -188,8 +204,8 @@ const VitalsTrends: React.FC<VitalsTrendsProps> = ({ patient, isDarkMode }) => {
                     contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: isDarkMode ? '#1e293b' : '#fff', color: isDarkMode ? '#fff' : '#000'}}
                     itemStyle={{color: '#f59e0b', fontWeight: 'bold'}}
                 />
-                <Line type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={3} dot={false} name="Temp" />
-              </LineChart>
+                <Area type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorTemp)" name="Temp" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>

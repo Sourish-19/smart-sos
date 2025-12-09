@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, Droplets, Sun, Moon, Coffee, Heart, Utensils, Brain, Check, Plus, BookOpen, Smile, Lightbulb, X, Dices, Star, Zap, Flame, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { NotificationType } from './NotificationSystem';
 
 interface HealthTipsProps {
@@ -21,6 +22,9 @@ const HealthTips: React.FC<HealthTipsProps> = ({ onNotification }) => {
 
   // Carousel State
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+  // Portal Root
+  const modalRoot = document.getElementById('modal-root') || document.body;
 
   const featuredTips = [
     {
@@ -338,17 +342,17 @@ const HealthTips: React.FC<HealthTipsProps> = ({ onNotification }) => {
         </div>
       </div>
 
-      {/* Cool Fact Modal */}
-      {selectedTopic && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Cool Fact Modal via Portal */}
+      {selectedTopic && modalRoot && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
            {/* Backdrop */}
            <div 
-             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
+             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
              onClick={() => setSelectedTopic(null)}
            />
            
            {/* Modal Content */}
-           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-700">
+           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-700 z-10">
               <button 
                 onClick={() => setSelectedTopic(null)}
                 className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors z-10"
@@ -390,17 +394,18 @@ const HealthTips: React.FC<HealthTipsProps> = ({ onNotification }) => {
                  </button>
               </div>
            </div>
-        </div>
+        </div>,
+        modalRoot
       )}
 
-      {/* Add Custom Habit Modal */}
-      {isAddingHabit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Add Custom Habit Modal via Portal */}
+      {isAddingHabit && modalRoot && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div 
-             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
+             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
              onClick={() => setIsAddingHabit(false)}
            />
-           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-300">
+           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-300 z-10 border border-slate-200 dark:border-slate-700">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Create Custom Habit</h3>
               
               <form onSubmit={handleAddHabit} className="space-y-4">
@@ -457,7 +462,8 @@ const HealthTips: React.FC<HealthTipsProps> = ({ onNotification }) => {
                 </div>
               </form>
            </div>
-        </div>
+        </div>,
+        modalRoot
       )}
 
     </div>

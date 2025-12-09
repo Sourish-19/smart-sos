@@ -1,5 +1,5 @@
 
-export type PageView = 'dashboard' | 'trends' | 'medications' | 'logs' | 'settings' | 'health-tips' | 'nutrition';
+export type PageView = 'dashboard' | 'trends' | 'medications' | 'logs' | 'settings' | 'health-tips' | 'nutrition' | 'steps' | 'sleep';
 
 export enum AlertLevel {
   STABLE = 'STABLE',
@@ -82,6 +82,28 @@ export interface NutritionState {
   waterIntake: number; // glasses
 }
 
+export interface StepRecord {
+  date: string; // YYYY-MM-DD or Day Name
+  count: number;
+  target: number;
+  met: boolean;
+}
+
+// Sleep Types
+export interface SleepState {
+  score: number; // 0-100
+  duration: string; // e.g., "7h 12m"
+  bedTime: string;
+  wakeTime: string;
+  stages: {
+    deep: number; // percentage
+    light: number;
+    rem: number;
+    awake: number;
+  };
+  history: { day: string; hours: number; score: number }[]; // Last 7 days
+}
+
 export interface PatientState {
   name: string;
   age: number;
@@ -93,13 +115,17 @@ export interface PatientState {
   bloodPressure: BloodPressure;
   oxygenLevel: VitalSign;
   temperature: VitalSign; 
-  steps: VitalSign; // New: IoT Steps Data
+  steps: VitalSign; 
+  dailyStepGoal: number; 
+  stepPoints: number; 
+  stepHistory: StepRecord[]; 
+  sleep: SleepState; // New: Sleep Data
   status: AlertLevel;
   medications: Medication[];
   logs: EmergencyLog[];
   contacts: EmergencyContact[];
   location: { lat: number; lng: number; address: string };
-  nutrition: NutritionState; // New: Nutrition Data
+  nutrition: NutritionState; 
 }
 
 export interface AIInsight {

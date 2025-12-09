@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Activity, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { authService, User } from '../services/authService';
@@ -100,35 +99,42 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       {/* Main Card */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-500 border border-slate-100 dark:border-slate-800">
         
-        {/* Tab Switcher */}
-        <div className="flex p-2 bg-slate-50 dark:bg-slate-800 m-2 rounded-2xl">
+        {/* Animated Tab Switcher */}
+        <div className="relative flex p-1.5 bg-slate-100 dark:bg-slate-800 m-6 mb-2 rounded-2xl h-14">
+          {/* Sliding Background Pill */}
+          <div 
+            className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-slate-700 shadow-md rounded-xl transition-all duration-300 ease-out z-0 ${
+              isLogin ? 'left-1.5' : 'left-[calc(50%+1.5px)]'
+            }`}
+          ></div>
+          
           <button
             onClick={() => { setIsLogin(true); setError(null); }}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+            className={`flex-1 relative z-10 text-sm font-bold transition-colors duration-300 ${
               isLogin 
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' 
-                : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                ? 'text-slate-900 dark:text-white' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
             }`}
           >
             Login
           </button>
           <button
             onClick={() => { setIsLogin(false); setError(null); }}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+            className={`flex-1 relative z-10 text-sm font-bold transition-colors duration-300 ${
               !isLogin 
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' 
-                : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                ? 'text-slate-900 dark:text-white' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
             }`}
           >
             Register
           </button>
         </div>
 
-        <div className="p-8 pt-6">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+        <div className="p-8 pt-4">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 text-center">
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
+          <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed text-center">
             {isLogin 
               ? 'Enter your credentials to access your dashboard' 
               : 'Join SmartSOS for 24/7 health monitoring'
@@ -152,7 +158,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     required={!isLogin}
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
                     placeholder="Margaret Thompson"
                   />
                 </div>
@@ -160,12 +166,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 {/* Phone Number with Country Code */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Phone Number (ft. Telegram Alerts)</label>
-                  <div className="flex relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                  <div className="flex relative rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
                     <div className="relative border-r border-slate-200 dark:border-slate-700">
                       <select 
                         value={countryCode}
                         onChange={(e) => setCountryCode(e.target.value)}
-                        className="appearance-none bg-transparent h-full pl-3 pr-8 py-3.5 text-slate-700 dark:text-white font-medium outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm w-24"
+                        className="appearance-none bg-transparent h-full pl-3 pr-8 py-3.5 text-slate-700 dark:text-white font-medium outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm w-24"
                       >
                         {countries.map(country => (
                           <option key={country.code} value={country.code}>
@@ -194,7 +200,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     type="number"
                     value={formData.age}
                     onChange={e => setFormData({...formData, age: e.target.value})}
-                    className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
                     placeholder="72"
                   />
                 </div>
@@ -208,7 +214,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 required
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
-                className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
                 placeholder="your@email.com"
               />
             </div>
@@ -220,7 +226,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 required
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
-                className="w-full p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-slate-700 dark:text-white transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
                 placeholder="••••••••"
               />
             </div>
